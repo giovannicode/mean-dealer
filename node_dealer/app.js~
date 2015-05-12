@@ -1,0 +1,257 @@
+
+//requires
+var express = require('express');
+var mongoose = require('mongoose');
+var autoIncrement = require('mongoose-auto-increment');
+var path = require('path');
+var nunjucks = require('nunjucks');
+
+
+//app configurations
+var app = express();
+app.set('views', path.join(__dirname, 'views'));
+app.use('/libs', express.static(__dirname + '/public/libs'));
+
+
+//database configurations
+var connection = mongoose.createConnection('mongodb://localhost/test');
+autoIncrement.initialize(connection);
+
+
+//template configurations
+nunjucks.configure('views', {
+  autoescape: true,
+  express: app
+});
+
+
+//deck object configuratons
+var deckSchema = new mongoose.Schema({
+      seq_num: Number,
+      configuration: [],
+      prct_correct: Number,
+    });
+
+deckSchema.plugin(autoIncrement.plugin, {model: 'Deck', field: 'seq_num', startAt: 0});
+var Deck = connection.model('Deck', deckSchema);
+
+
+//prepare resetter deck and initial deck
+
+
+var sorted_deck = [ 
+  { suit: 'Spade', value: 'A' },
+  { suit: 'Spade', value: '2' },
+  { suit: 'Spade', value: '3' },
+  { suit: 'Spade', value: '4' },
+  { suit: 'Spade', value: '5' },
+  { suit: 'Spade', value: '6' },
+  { suit: 'Spade', value: '7' },
+  { suit: 'Spade', value: '8' },
+  { suit: 'Spade', value: '9' },
+  { suit: 'Spade', value: '10' },
+  { suit: 'Spade', value: 'J' },
+  { suit: 'Spade', value: 'Q' },
+  { suit: 'Spade', value: 'K' },
+  { suit: 'Diamond', value: 'A' },                                
+  { suit: 'Diamond', value: '2' },
+  { suit: 'Diamond', value: '3' },
+  { suit: 'Diamond', value: '4' },
+  { suit: 'Diamond', value: '5' },
+  { suit: 'Diamond', value: '6' },
+  { suit: 'Diamond', value: '7' },
+  { suit: 'Diamond', value: '8' },
+  { suit: 'Diamond', value: '9' },
+  { suit: 'Diamond', value: '10' },
+  { suit: 'Diamond', value: 'J' },
+  { suit: 'Diamond', value: 'Q' },
+  { suit: 'Diamond', value: 'K' },
+  { suit: 'Heart', value: 'A' },                                                     
+  { suit: 'Heart', value: '2' },                                  
+  { suit: 'Heart', value: '3' },                                  
+  { suit: 'Heart', value: '4' },                                  
+  { suit: 'Heart', value: '5' },                                  
+  { suit: 'Heart', value: '6' },                                  
+  { suit: 'Heart', value: '7' },                                  
+  { suit: 'Heart', value: '8' },                                  
+  { suit: 'Heart', value: '9' },                                  
+  { suit: 'Heart', value: '10' },                                 
+  { suit: 'Heart', value: 'J' },                                  
+  { suit: 'Heart', value: 'Q' },                                  
+  { suit: 'Heart', value: 'K' },                                   
+  { suit: 'Club', value: 'A' },
+  { suit: 'Club', value: '2' },
+  { suit: 'Club', value: '3' },
+  { suit: 'Club', value: '4' },
+  { suit: 'Club', value: '5' },
+  { suit: 'Club', value: '6' },
+  { suit: 'Club', value: '7' },
+  { suit: 'Club', value: '8' },
+  { suit: 'Club', value: '9' },
+  { suit: 'Club', value: '10' },
+  { suit: 'Club', value: 'J' },
+  { suit: 'Club', value: 'Q' },
+  { suit: 'Club', value: 'K' }];
+
+var new_deck = JSON.parse(JSON.stringify(sorted_deck));
+var new_deck_prct = 1.00; 
+
+var first_deck = new Deck({ configuration: new_deck, prct_correct: new_deck_prct});
+
+
+//reset deck database and add first shuffled deck
+deck0= new Deck();
+deck0.save(function (err) {
+  deck0.nextCount(function(err, count) {
+    deck0.resetCount(function(err, nextCount) {
+      console.log("first");
+      Deck.remove({}, function(err){
+	console.log("second");
+//	first_deck.save(function(err){
+//	  console.log("third");
+//	});
+      });
+    });
+  });
+});
+
+
+//deck functions
+function shuffle(deck)
+{
+  for(var i=0; i<=deck.length-2; i++) { var j = Math.floor((Math.random() * ((51-i) + 1))) + i;
+    var card = deck[i];
+    deck[i] = deck[j];
+    deck[j] = card
+  }
+  var new_deck = [];
+  for(var i=0; i<= deck.length-1; i++)
+  {
+    new_deck[i] = deck[i];
+  }
+  return new_deck;
+}
+
+
+function calc_prct(deck)
+{
+  var points = 0;
+  for(var i=0; i<= 51; i++)
+  {
+    if(sorted_deck[i]["suit"] === deck[i]["suit"] && sorted_deck[i]["value"] === deck[i]["value"]) 
+    { 
+      points+=2; 
+    }
+    else if(sorted_deck[i]["suit"] == deck[i]["suit"])
+    {
+      points++;
+    }
+    else if(sorted_deck[i]["value"] == deck[i]["value"])
+    {
+      points++;
+    } 
+  } 
+  return points/104;
+} 
+
+var started = false;
+
+//controller
+app.get('/', function (req, res) {
+  if(started)
+  {
+      res.render('index.html');
+  }
+  else
+  {
+    first_deck.save(function(err){
+      console.log("third");
+      started = true; 
+      res.render('index.html');
+    }); 
+  }
+});
+
+
+app.get('/decks/current_deck', function (req, res) {
+  
+  Deck.find({}).lean().exec(function (err, decks){
+
+      var current_deck = decks[decks.length-1]["configuration"]; 
+      var current_seq_num = decks[decks.length-1]["seq_num"];
+      var current_prct = decks[decks.length-1]["prct_correct"];
+      var points = calc_prct(current_deck);
+
+      //show current and previous configurations
+      var total = 0;
+      for(var i=1; i<=decks.length-1; i++)
+      {
+	total = total + decks[i]["prct_correct"];
+      }
+      if(decks.length >= 2)
+      {
+        average = ((total/(decks.length-1))*100).toFixed(2);
+      }
+      else
+      {
+        average = "Initial Deck. No average yet."
+      }
+      res.json({items: current_deck, count: current_seq_num, totals: (current_prct*100).toFixed(2), avg: average});
+  });
+});
+
+
+app.get('/decks/historical/:seq_num', function(req, res){
+  var seq_num = req.params.seq_num;
+  Deck.find({}).where('seq_num').equals(seq_num).lean().exec(function (err, decks){
+      if(decks.length==0)
+      {
+        res.json([]);
+      }
+      else
+      {
+	var current_deck = decks[0]["configuration"]; 
+	var current_seq_num = decks[0]["seq_num"];
+	var current_prct = decks[0]["prct_correct"];
+	var points = calc_prct(current_deck);
+        res.json({items: current_deck, count: current_seq_num, totals: (current_prct*100).toFixed(2)});
+      }
+  });
+});
+
+
+app.get('/decks', function (req, res){
+  Deck.find({}).lean().exec(function (err, decks){
+      //retrive the current deck and shuffle it
+      var current_deck = decks[decks.length-1]["configuration"];      
+      var current_seq_num = decks[decks.length-1]["seq_num"];
+     
+      var new_deck = shuffle(current_deck);
+      var new_prct = calc_prct(new_deck);
+      var new_seq_num = current_seq_num + 1;
+
+      
+      var new_deck_obj = Deck({configuration: new_deck, prct_correct: new_prct});
+      new_deck_obj.save();
+
+      //show current and previous configurations
+      var total = 0;
+      for(var i=1; i<=decks.length-1; i++)
+      {
+	total = total + decks[i]["prct_correct"];
+      }
+      total = total + new_prct;
+      average = ((total/(decks.length))*100).toFixed(2);
+      res.json({items: new_deck, count: new_seq_num, totals:(new_prct*100).toFixed(2), avg: average});
+  });
+});
+
+
+//start server
+var server = app.listen(3000, function() { 
+  var host = server.address().address;
+  var port = server.address().port;
+  
+  console.log('Example app listening at http://%s%s', host, port);
+  
+});

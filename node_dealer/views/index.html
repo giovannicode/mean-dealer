@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html ng-app="dealerApp">
+<head>
+  <title></title>
+  <meta charset="UTF-8">
+<script src="/libs/jquery/dist/jquery.js"></script>
+<link rel="stylesheet" href="/libs/bootstrap/dist/css/bootstrap.css"/>
+<script src="/libs/angular/angular.js"></script>
+<script src="/libs/js/controller.js"></script>
+<style>
+.card
+{
+  width: 75px;
+  height: 105px;
+  border-radius: 8px;
+  background-color: hsl(0, 0%, 98%);
+  box-shadow: 2px 2px 4px hsl(0, 0%, 60%);
+  box-sizing: border-box;
+  margin: 5px;
+}
+
+.pair
+{
+  border: 3px solid red;
+}
+
+.triplet
+{
+  border: 3px solid green;
+}
+
+label
+{
+margin-right: 10px;
+}
+</style>
+
+</head>
+<body>
+  <div class="container">  
+    <div ng-controller="DealListCtrl" > 
+      <form ng-submit="deck.getPrevious()"> 
+       <label for="txt_seq_num">Enter a sequence number </label><input name="txt_seq_num" type="text" ng-model="prev_seq_num"/>
+        <button type="submit">View Sequence</button>
+      </form>    
+      <h3>Sequence Number: {[{count}]}</h2>
+      <h3>Percentage Correct: {[{current_prct}]}%</h2>
+      <h4>Average: {[{average}]}%</h3>
+      <div class="card pull-left" ng-repeat="card in deck" id="card_{[{$index}]}" >{[{card.value}]} {[{card.suit}]}</div>            
+      <button ng-click="deck.shuffle_and_deal(item, $event)">Deal Again!</button>
+      <button  ng-click="deck.getCards(item, $event)">Current Configuration</button>
+       <div ng-init="deck.getCards(item, $event)"></div>
+       <button ng-click="highlight()">Highlight adjacents!</button>
+    </div>
+  </div>
+</body>
+</html>
